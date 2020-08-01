@@ -20,8 +20,9 @@ defmodule Issues.GithubIssues do
     |> handle_response
   end
 
+  @github_url Application.fetch_env!(:issues, :github_url)
   def issues_url(user, project) do
-    "https://api.github.com/repos/#{user}/#{project}/issues"
+    "#{@github_url}/repos/#{user}/#{project}/issues"
   end
 
   # %{...} はマップ

@@ -45,12 +45,14 @@ defmodule Issues.CLI do
     System.halt(0)
   end
 
-  def process({user, project, _count}) do
+  def process({user, project, count}) do
     # 関数が戻り値をタプルで返すことによって、
     # パイプ処理がやりやすくなっている、と思った.
     Issues.GithubIssues.fetch(user.project)
     |> decode_response
     |> convert_to_list_of_maps
+    |> sort_into_ascending_order
+    |> Enum.take(count)
   end
 
   # 関数のボディ(do ... endブロック) は実のところ、キーワードリストである.
@@ -74,4 +76,8 @@ defmodule Issues.CLI do
     |> Enum.map(&Enum.into(&1, Map.new))
   end
 
+  def sort_into_ascending_order(list_of_issue) do
+    Enum.sort list_of_issue,
+      fn i1, i2 -> i1["created_at"] <= i2["created_at"] end
+  end
 end
