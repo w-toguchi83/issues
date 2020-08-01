@@ -9,7 +9,9 @@ defmodule Issues.CLI do
   table of the last _n_ issues in a github project
   """
 
-  def run(argv) do
+  import Issues.TableFormatter, only: [ print_table_for_columns: 2 ]
+
+  def main(argv) do
     argv
     |> parse_args
     |> process
@@ -48,11 +50,12 @@ defmodule Issues.CLI do
   def process({user, project, count}) do
     # 関数が戻り値をタプルで返すことによって、
     # パイプ処理がやりやすくなっている、と思った.
-    Issues.GithubIssues.fetch(user.project)
+    Issues.GithubIssues.fetch(user, project)
     |> decode_response
     |> convert_to_list_of_maps
     |> sort_into_ascending_order
     |> Enum.take(count)
+    |> print_table_for_columns(["number", "created_at", "title"])
   end
 
   # 関数のボディ(do ... endブロック) は実のところ、キーワードリストである.
@@ -61,7 +64,9 @@ defmodule Issues.CLI do
 
   def decode_response({ :error, error }) do
     # https://hexdocs.pm/elixir/List.html#keyfind/4
-    {_, message} = List.keyfind(error, "message", 0)
+    #{_, message} = List.keyfind(error, "message", 0)
+    # 書籍では上記のコードが、想定してるデータ構造と変わっているのか、動作しないので書き換えた.
+    message = Map.get(error, "message", "message not found.")
     IO.puts "Error fetching from Github: #{message}"
     System.halt(2)
   end

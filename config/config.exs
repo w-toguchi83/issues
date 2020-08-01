@@ -6,3 +6,10 @@ import Config
 
 config :issues,
   github_url: "https://api.github.com"
+
+# loggerの設定方法が書籍と変わっている箇所.
+config :logger,
+  backends: [:console],
+  compile_time_purge_matching: [
+    [level_lower_than: :info]
+  ]

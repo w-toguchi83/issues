@@ -1,7 +1,11 @@
 defmodule Issues.GithubIssues do
+
+  require Logger
+
   @user_agent [ {"User-agent", "Elixir hello@example.com"} ]
 
   def fetch(user, project) do
+    Logger.info "Fetching user #{user}'s project #{project}"
     # HTTPoisonはライブラリだがアプリケーションでもあり、
     # `HTTPoison.start` を実行してプロセスを生成しておく必要がある.
     # 書籍『プログラミング Elixir』では、インラインで `HTTPoison.start` をせずに
@@ -28,11 +32,16 @@ defmodule Issues.GithubIssues do
   # %{...} はマップ
   # 関数のパターンマッチによって処理を振り分けている.
   def handle_response({ :ok, %{status_code: 200, body: body}}) do
+    Logger.info "Successful response"
+    Logger.debug fn -> inspect(body) end
     # HTTTPのレスポンスを単純なタプルにして返すだけの関数.
-    { :ok, Poison.Parser.parse!(body) }
+    # 書籍『プログラミング Elixir』と違う箇所. poisonのバージョンが違うので、
+    # parse関数のインターフェースが変更されている。書籍ではparse!/1だが、4系ではparse!/2になっている.
+    { :ok, Poison.Parser.parse!(body, %{}) }
   end
 
-  def handle_response({_, %{status_code: _, body: body}}) do
-    { :error, Poison.Parser.parse!!(body) }
+  def handle_response({_, %{status_code: status, body: body}}) do
+    Logger.error "Error #{status} returned"
+    { :error, Poison.Parser.parse!(body, %{}) }
   end
 end
