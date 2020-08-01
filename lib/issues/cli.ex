@@ -10,7 +10,9 @@ defmodule Issues.CLI do
   """
 
   def run(argv) do
-    parse_args(argv)
+    argv
+    |> parse_args
+    |> process
   end
 
   @doc """
@@ -35,4 +37,41 @@ defmodule Issues.CLI do
       _ -> :help
     end
   end
+
+  def process(:help) do
+    IO.puts """
+    usage: issues <user> <project> [ count | #{@default_count} ]
+    """
+    System.halt(0)
+  end
+
+  def process({user, project, _count}) do
+    # 関数が戻り値をタプルで返すことによって、
+    # パイプ処理がやりやすくなっている、と思った.
+    Issues.GithubIssues.fetch(user.project)
+    |> decode_response
+    |> convert_to_list_of_maps
+  end
+
+  # 関数のボディ(do ... endブロック) は実のところ、キーワードリストである.
+  # だからこの1行書きの関数定義ができる.
+  def decode_response({ :ok, body }), do: body
+
+  def decode_response({ :error, error }) do
+    # https://hexdocs.pm/elixir/List.html#keyfind/4
+    {_, message} = List.keyfind(error, "message", 0)
+    IO.puts "Error fetching from Github: #{message}"
+    System.halt(2)
+  end
+
+  def convert_to_list_of_maps(list) do
+    # &演算子で、インラインで `Enum.into` を関数化し、Enum.mapにわたす関数にしている.
+    # `Enum.into` は列挙型をコレクション型に変換できる関数.
+    # https://hexdocs.pm/elixir/Enum.html#into/2
+    # `list` は、リストのリストで内側のリストがタプルのリストになっている.
+    # このタプルのリストを `Enum.into` で、マップに変換している.
+    list
+    |> Enum.map(&Enum.into(&1, Map.new))
+  end
+
 end
